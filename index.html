@@ -15,9 +15,30 @@
 <link rel="apple-touch-icon" href="icon-192.png" />
 <link rel="icon" href="icon-192.png" />
 
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
+<script>
+  // Fallback: if jsdelivr failed to load React/ReactDOM (blocked network, offline first-load, etc.),
+  // try a second CDN before giving up.
+  (function () {
+    function loadScript(src) {
+      return new Promise(function (resolve, reject) {
+        var s = document.createElement('script');
+        s.src = src;
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    }
+    window.__ensureReact = function () {
+      if (window.React && window.ReactDOM) return Promise.resolve();
+      return loadScript('https://unpkg.com/react@18/umd/react.production.min.js')
+        .then(function () {
+          return loadScript('https://unpkg.com/react-dom@18/umd/react-dom.production.min.js');
+        });
+    };
+  })();
+</script>
 
 <style>
   * { box-sizing: border-box; }
@@ -35,10 +56,14 @@
 </style>
 </head>
 <body>
-<div id="root"></div>
+<div id="root">
+  <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:Georgia,serif;color:#c9a24b;font-style:italic;letter-spacing:1px;">The fog gathers…</div>
+</div>
 
-<script type="text/babel" data-presets="react">
+<script>
+function bootApp() {
 const { useState, useEffect } = React;
+const h = React.createElement;
 
 // ---------- STORAGE HELPERS (localStorage — works offline, installed app) ----------
 const STORAGE_KEY = 'pathway-progress-v1';
@@ -580,184 +605,162 @@ function App() {
   };
 
   if (!loaded) {
-    return (
-      <div style={styles.loadingScreen}>
-        <div style={styles.loadingText}>The fog gathers…</div>
-      </div>
+    return h('div', { style: styles.loadingScreen },
+      h('div', { style: styles.loadingText }, 'The fog gathers…')
     );
   }
 
   let exCounter = -1;
 
-  return (
-    <div style={styles.app}>
+  return h('div', { style: styles.app },
+    showInstallBanner && h('div', { style: styles.installBanner },
+      h('span', { style: styles.installBannerText }, 'Install this as an app on your phone'),
+      h('div', { style: styles.installBannerActions },
+        h('button', { style: styles.installBtn, onClick: handleInstallClick }, 'Install'),
+        h('button', { style: styles.installDismiss, onClick: () => setShowInstallBanner(false) }, '✕')
+      )
+    ),
 
-      {showInstallBanner && (
-        <div style={styles.installBanner}>
-          <span style={styles.installBannerText}>Install this as an app on your phone</span>
-          <div style={styles.installBannerActions}>
-            <button style={styles.installBtn} onClick={handleInstallClick}>Install</button>
-            <button style={styles.installDismiss} onClick={() => setShowInstallBanner(false)}>✕</button>
-          </div>
-        </div>
-      )}
+    showAscend && h('div', { style: styles.ascendOverlay },
+      h('div', { style: styles.ascendCard },
+        h('div', { style: styles.ascendEyebrow }, 'THE POTION IS FULLY DIGESTED'),
+        h('div', { style: styles.ascendTitle }, 'Sequence ' + SEQUENCES[seqIndex].num),
+        h('div', { style: styles.ascendSub }, SEQUENCES[seqIndex].title)
+      )
+    ),
 
-      {showAscend && (
-        <div style={styles.ascendOverlay}>
-          <div style={styles.ascendCard}>
-            <div style={styles.ascendEyebrow}>THE POTION IS FULLY DIGESTED</div>
-            <div style={styles.ascendTitle}>Sequence {SEQUENCES[seqIndex].num}</div>
-            <div style={styles.ascendSub}>{SEQUENCES[seqIndex].title}</div>
-          </div>
-        </div>
-      )}
+    h('header', { style: styles.header },
+      h('div', { style: styles.headerTop },
+        h('div', { style: styles.crest }, '†'),
+        h('div', null,
+          h('div', { style: styles.headerEyebrow }, 'PATHWAY OF THE BODY'),
+          h('div', { style: styles.headerTitle }, "Beyonder's Regimen")
+        )
+      ),
+      h('div', { style: styles.seqBanner },
+        h('div', { style: styles.seqLeft },
+          h('div', { style: styles.seqNumLabel }, 'SEQUENCE'),
+          h('div', { style: styles.seqNum }, seq.num)
+        ),
+        h('div', { style: styles.seqRight },
+          h('div', { style: styles.seqTitle }, seq.title),
+          h('div', { style: styles.seqEpithet }, seq.epithet)
+        )
+      ),
 
-      <header style={styles.header}>
-        <div style={styles.headerTop}>
-          <div style={styles.crest}>†</div>
-          <div>
-            <div style={styles.headerEyebrow}>PATHWAY OF THE BODY</div>
-            <div style={styles.headerTitle}>Beyonder's Regimen</div>
-          </div>
-        </div>
-        <div style={styles.seqBanner}>
-          <div style={styles.seqLeft}>
-            <div style={styles.seqNumLabel}>SEQUENCE</div>
-            <div style={styles.seqNum}>{seq.num}</div>
-          </div>
-          <div style={styles.seqRight}>
-            <div style={styles.seqTitle}>{seq.title}</div>
-            <div style={styles.seqEpithet}>{seq.epithet}</div>
-          </div>
-        </div>
+      h('div', { style: styles.digestionBlock },
+        h('div', { style: styles.digestionLabelRow },
+          h('span', { style: styles.digestionLabel }, 'Potion Digestion'),
+          h('span', { style: styles.digestionPct }, digestionStats.pct + '%')
+        ),
+        h('div', { style: styles.digestionBarTrack },
+          h('div', { style: Object.assign({}, styles.digestionBarFill, { width: digestionStats.pct + '%' }) })
+        ),
+        h('div', { style: styles.digestionSub }, digestionStats.done + ' / ' + digestionStats.total + ' rites absorbed across the week')
+      ),
 
-        <div style={styles.digestionBlock}>
-          <div style={styles.digestionLabelRow}>
-            <span style={styles.digestionLabel}>Potion Digestion</span>
-            <span style={styles.digestionPct}>{digestionStats.pct}%</span>
-          </div>
-          <div style={styles.digestionBarTrack}>
-            <div style={{ ...styles.digestionBarFill, width: `${digestionStats.pct}%` }} />
-          </div>
-          <div style={styles.digestionSub}>{digestionStats.done} / {digestionStats.total} rites absorbed across the week</div>
-        </div>
+      h('div', { style: styles.progressTrack },
+        SEQUENCES.map((s) => h('div', {
+          key: s.num,
+          style: Object.assign({}, styles.progressDot,
+            s.num > seq.num ? styles.progressDotFilled : {},
+            s.num === seq.num ? styles.progressDotCurrent : {}
+          ),
+          title: 'Sequence ' + s.num + ': ' + s.title,
+        }))
+      ),
+      h('div', { style: styles.seqControls },
+        h('button', { style: styles.seqBtn, onClick: descend, disabled: seqIndex === 0 }, '◂ Regress'),
+        h('span', { style: styles.seqControlLabel },
+          canAscend ? 'Potion fully digested' : (digestionStats.pct + '% digested')
+        ),
+        h('button', {
+          style: Object.assign({}, styles.seqBtn, canAscend ? styles.seqBtnActive : {}),
+          onClick: ascend,
+          disabled: !canAscend,
+        }, 'Ascend ▸')
+      )
+    ),
 
-        <div style={styles.progressTrack}>
-          {SEQUENCES.map((s) => (
-            <div
-              key={s.num}
-              style={{
-                ...styles.progressDot,
-                ...(s.num > seq.num ? styles.progressDotFilled : {}),
-                ...(s.num === seq.num ? styles.progressDotCurrent : {}),
-              }}
-              title={`Sequence ${s.num}: ${s.title}`}
-            />
-          ))}
-        </div>
-        <div style={styles.seqControls}>
-          <button style={styles.seqBtn} onClick={descend} disabled={seqIndex === 0}>◂ Regress</button>
-          <span style={styles.seqControlLabel}>
-            {canAscend ? 'Potion fully digested' : `${digestionStats.pct}% digested`}
-          </span>
-          <button
-            style={{ ...styles.seqBtn, ...(canAscend ? styles.seqBtnActive : {}) }}
-            onClick={ascend}
-            disabled={!canAscend}
-          >
-            Ascend ▸
-          </button>
-        </div>
-      </header>
+    h('nav', { style: styles.dayNav },
+      DAYS.map(d => {
+        const items = countable(d.key);
+        const done = items.filter((_, i) => checks[checkKey(d.key, i)]).length;
+        const complete = items.length > 0 && done === items.length;
+        return h('button', {
+          key: d.key,
+          onClick: () => setActiveDay(d.key),
+          style: Object.assign({}, styles.dayTab,
+            activeDay === d.key ? styles.dayTabActive : {},
+            complete ? styles.dayTabComplete : {}
+          ),
+        },
+          h('span', { style: styles.dayTabLabel }, d.label.slice(0, 3) + (complete ? ' ✓' : '')),
+          h('span', { style: styles.dayTabFocus }, d.focus)
+        );
+      })
+    ),
 
-      <nav style={styles.dayNav}>
-        {DAYS.map(d => {
-          const items = countable(d.key);
-          const done = items.filter((_, i) => checks[checkKey(d.key, i)]).length;
-          const complete = items.length > 0 && done === items.length;
-          return (
-            <button
-              key={d.key}
-              onClick={() => setActiveDay(d.key)}
-              style={{
-                ...styles.dayTab,
-                ...(activeDay === d.key ? styles.dayTabActive : {}),
-                ...(complete ? styles.dayTabComplete : {}),
-              }}
-            >
-              <span style={styles.dayTabLabel}>{d.label.slice(0, 3)}{complete ? ' ✓' : ''}</span>
-              <span style={styles.dayTabFocus}>{d.focus}</span>
-            </button>
+    h('main', { style: styles.main },
+      h('div', { style: styles.ritualHeader },
+        h('div', { style: styles.ritualName }, day.ritual),
+        h('div', { style: styles.ritualMeta }, day.label + ' · ' + day.focus + ' Day')
+      ),
+
+      h('div', { style: styles.dayBarTrack },
+        h('div', { style: Object.assign({}, styles.dayBarFill, { width: dayStats.pct + '%' }) })
+      ),
+      h('div', { style: styles.dayBarLabel }, dayStats.done + ' / ' + dayStats.total + ' exercises complete'),
+
+      h('div', { style: styles.exerciseList },
+        program.ex.map((e, i) => {
+          if (e.sets === 0) {
+            return h('div', { key: i, style: styles.warningNote }, e.name);
+          }
+          exCounter += 1;
+          const key = checkKey(activeDay, exCounter);
+          const isChecked = !!checks[key];
+          const thisIndex = exCounter;
+          return h('button', {
+            key: i,
+            onClick: () => toggleCheck(activeDay, thisIndex),
+            style: Object.assign({}, styles.exerciseCard, isChecked ? styles.exerciseCardDone : {}),
+          },
+            h('div', { style: Object.assign({}, styles.checkbox, isChecked ? styles.checkboxChecked : {}) },
+              isChecked ? '✓' : null
+            ),
+            h('div', { style: styles.exerciseBody },
+              h('div', { style: Object.assign({}, styles.exerciseName, isChecked ? styles.exerciseNameDone : {}) }, e.name),
+              h('div', { style: styles.exerciseSets }, e.sets + ' sets × ' + e.reps),
+              e.note ? h('div', { style: styles.exerciseNote }, e.note) : null
+            )
           );
-        })}
-      </nav>
+        })
+      ),
 
-      <main style={styles.main}>
-        <div style={styles.ritualHeader}>
-          <div style={styles.ritualName}>{day.ritual}</div>
-          <div style={styles.ritualMeta}>{day.label} · {day.focus} Day</div>
-        </div>
+      h('div', { style: styles.goalsSection },
+        h('div', { style: styles.goalsTitle }, "The Fool's Threshold — Final Goals"),
+        h('div', { style: styles.goalsList },
+          h('div', { style: styles.goalItem },
+            h('span', { style: styles.goalName }, 'Dragon / Pistol Squats'),
+            h('span', { style: styles.goalTarget }, '10 reps/side')
+          ),
+          h('div', { style: styles.goalItem },
+            h('span', { style: styles.goalName }, 'One-Arm Push-ups'),
+            h('span', { style: styles.goalTarget }, '5 reps/side')
+          ),
+          h('div', { style: styles.goalItem },
+            h('span', { style: styles.goalName }, 'Pull-ups'),
+            h('span', { style: styles.goalTarget }, '10 reps')
+          )
+        ),
+        h('div', { style: styles.goalsNote },
+          'No bar yet — Thursday builds toward pull-ups via rows until you find one (doorway bar, park, tree branch). True pull-ups need a hanging bar; the app will flag when to switch.'
+        )
+      ),
 
-        <div style={styles.dayBarTrack}>
-          <div style={{ ...styles.dayBarFill, width: `${dayStats.pct}%` }} />
-        </div>
-        <div style={styles.dayBarLabel}>{dayStats.done} / {dayStats.total} exercises complete</div>
-
-        <div style={styles.exerciseList}>
-          {program.ex.map((e, i) => {
-            if (e.sets === 0) {
-              return <div key={i} style={styles.warningNote}>{e.name}</div>;
-            }
-            exCounter += 1;
-            const key = checkKey(activeDay, exCounter);
-            const isChecked = !!checks[key];
-            const thisIndex = exCounter;
-            return (
-              <button
-                key={i}
-                onClick={() => toggleCheck(activeDay, thisIndex)}
-                style={{
-                  ...styles.exerciseCard,
-                  ...(isChecked ? styles.exerciseCardDone : {}),
-                }}
-              >
-                <div style={{ ...styles.checkbox, ...(isChecked ? styles.checkboxChecked : {}) }}>
-                  {isChecked && '✓'}
-                </div>
-                <div style={styles.exerciseBody}>
-                  <div style={{ ...styles.exerciseName, ...(isChecked ? styles.exerciseNameDone : {}) }}>{e.name}</div>
-                  <div style={styles.exerciseSets}>{e.sets} sets × {e.reps}</div>
-                  {e.note && <div style={styles.exerciseNote}>{e.note}</div>}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        <div style={styles.goalsSection}>
-          <div style={styles.goalsTitle}>The Fool's Threshold — Final Goals</div>
-          <div style={styles.goalsList}>
-            <div style={styles.goalItem}>
-              <span style={styles.goalName}>Dragon / Pistol Squats</span>
-              <span style={styles.goalTarget}>10 reps/side</span>
-            </div>
-            <div style={styles.goalItem}>
-              <span style={styles.goalName}>One-Arm Push-ups</span>
-              <span style={styles.goalTarget}>5 reps/side</span>
-            </div>
-            <div style={styles.goalItem}>
-              <span style={styles.goalName}>Pull-ups</span>
-              <span style={styles.goalTarget}>10 reps</span>
-            </div>
-          </div>
-          <div style={styles.goalsNote}>
-            No bar yet — Thursday builds toward pull-ups via rows until you find one (doorway bar, park, tree branch). True pull-ups need a hanging bar; the app will flag when to switch.
-          </div>
-        </div>
-
-        <div style={styles.footerNote}>Progress is saved automatically on this device.</div>
-      </main>
-    </div>
+      h('div', { style: styles.footerNote }, 'Progress is saved automatically on this device.')
+    )
   );
 }
 
@@ -1179,10 +1182,21 @@ const styles = {
 };
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<App />);
+root.render(h(App));
+
+} // end bootApp
+
+window.__ensureReact().then(bootApp).catch(function (err) {
+  document.getElementById('root').innerHTML =
+    '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;' +
+    'padding:30px;text-align:center;font-family:Georgia,serif;background:#0d0e14;color:#e9e2d0;">' +
+    '<div><div style="color:#c9a24b;font-size:14px;letter-spacing:2px;margin-bottom:14px;">CONNECTION FAILED</div>' +
+    '<div style="font-size:14px;line-height:1.6;">Could not load required scripts.<br>Check your internet connection, then reload the app.</div></div></div>';
+});
 </script>
 
 <script>
+
   // Register service worker for offline support / installability
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
